@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <!-- 真正可以产生Connection的ConnectionFactory，由对应的 JMS服务厂商提供-->
+    <bean id="targetConnectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <property name="brokerURL" value="tcp://192.168.200.128:61616"/>
+    </bean>
+
+    <!-- Spring用于管理真正的ConnectionFactory的ConnectionFactory -->
+    <bean id="connectionFactory" class="org.springframework.jms.connection.SingleConnectionFactory">
+        <!-- 目标ConnectionFactory对应真实的可以产生JMS Connection的ConnectionFactory -->
+        <property name="targetConnectionFactory" ref="targetConnectionFactory"/>
+    </bean>
+
+    <!--发布订阅模式, 将数据导入solr索引库-->
+    <bean id="topicPageAndSolrDestination" class="org.apache.activemq.command.ActiveMQTopic">
+        <constructor-arg value="pinyougou_topic_page_solr"/>
+    </bean>
+
+    <!-- 发布订阅模式, 消息监听容器, 将数据导入solr索引库 -->
+    <bean class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+        <property name="connectionFactory" ref="connectionFactory"/>
+        <property name="destination" ref="topicPageAndSolrDestination"/>
+        <property name="messageListener" ref="pageAndSolrListener"/>
+    </bean>
+    <!-- 指定自定义监听器类,必须要实现messageListener接口 -->
+    <bean id="pageAndSolrListener" class="cn.lxdl.listener.ItemSearchListener"/>
+
+
+    <!--发布点对点模式, 将数据从solr索引库中删除-->
+    <bean id="queueDeleteAndSolrDestination" class="org.apache.activemq.command.ActiveMQQueue">
+        <constructor-arg value="pinyougou_queue_solr_delete"/>
+    </bean>
+    <!-- 发布订阅模式, 消息监听容器, 将数据导入solr索引库 -->
+    <bean class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+        <property name="connectionFactory" ref="connectionFactory"/>
+        <property name="destination" ref="queueDeleteAndSolrDestination"/>
+        <property name="messageListener" ref="deleteAndSolrListener"/>
+    </bean>
+    <!-- 指定自定义监听器类,必须要实现messageListener接口 -->
+    <bean id="deleteAndSolrListener" class="cn.lxdl.listener.ItemDeleteListener"/>
+
+</beans>

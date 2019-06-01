@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>test</title>
+    <script src="plugins/angularjs/angular.min.js"></script>
+    <script type="application/javascript">
+        var hd = angular.module('hd', []);
+        hd.controller('ctrl', function ($scope) {
+
+            //checkbox全选单选
+            $scope.selected = [];//定义一个数组
+            //全选方法，并将所有的id一并传入selected数组中
+            $scope.all = function ($event, data) {
+                var checkbox = $event.target;
+                var checked = checkbox.checked;
+                if (checked) {
+                    $scope.x = true;
+                    for (var key in data) {
+                        if ($scope.selected.indexOf(data[key].id) >= 0) {//判断数组中是否重复存在
+                            continue;
+                        } else {
+                            $scope.selected.push(data[key].id);
+                        }
+                    }
+                    console.log($scope.selected);
+                }
+                else {
+                    $scope.x = false;
+                    $scope.selected = [];
+                }
+            };
+
+            $scope.updateSelection = function ($event, id) { //单选更新selected
+                var checkbox = $event.target;
+                var checked = checkbox.checked;
+                if (checked) {
+                    $scope.selected.push(id);
+                } else {
+                    var idx = $scope.selected.indexOf(id);
+                    $scope.selected.splice(idx, 1);
+                }
+            }
+
+            //批量删除
+            $scope.alldelete = function () {
+                var url = '/jsjxyxt/advice/alldelete.do';
+                var datas = {
+                    dataObject: $scope.selected,
+                };
+                $http.post(url, datas).success(function (data) {
+                    if (data.msg == "0") {
+                        toaster.pop('error', '系统提示', '删除失败');
+                    } else {
+                        toaster.pop('success', '系统提示', '批量删除成功');
+                        $timeout(function () {
+                            $scope.$apply(function () {
+                                $scope.datas = data.result;
+                            })
+                        })
+                    }
+                })
+            }
+        });
+
+    </script>
+</head>
+<body ng-app="hd" ng-controller="ctrl">
+<table border="1px;">
+    <tr>
+        <td width="60px;"><input type="checkbox" ng-model="master" ng-click="all($event,datas)"></td>
+        <td width="60px;">编号</td>
+        <td width="60px;">姓名</td>
+    </tr>
+    <tr ng-repeat="item in datas">
+        <td><input type="checkbox" name="selected" ng-model="x" ng-checked="master"
+                   ng-click="updateSelection($event,item.id)"></td>
+        <td>{{item.id}}</td>
+        <td>{{item.name}}</td>
+    </tr>
+</table>
+<div>
+    Selected : {{selected}}
+</div>
+</body>
+</html>
